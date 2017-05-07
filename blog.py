@@ -3,6 +3,7 @@ import re
 import random
 import hashlib
 import hmac
+import time
 from string import letters
 
 import webapp2
@@ -14,7 +15,7 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-secret = 'fart'
+secret = 'mustlegend'
 
 def render_str(template, **params):
     t = jinja_env.get_template(template)
@@ -27,6 +28,35 @@ def check_secure_val(secure_val):
     val = secure_val.split('|')[0]
     if secure_val == make_secure_val(val):
         return val
+
+##### user stuff
+def make_salt(length = 5):
+    return ''.join(random.choice(letters) for x in xrange(length))
+
+def make_pw_hash(name, pw, salt = None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (salt, h)
+
+def valid_pw(name, password, h):
+    salt = h.split(',')[0]
+    return h == make_pw_hash(name, password, salt)
+
+def users_key(group = 'default'):
+    return db.Key.from_path('users', group)
+
+USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+def valid_username(username):
+    return username and USER_RE.match(username)
+
+PASS_RE = re.compile(r"^.{3,20}$")
+def valid_password(password):
+    return password and PASS_RE.match(password)
+
+EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+def valid_email(email):
+    return not email or EMAIL_RE.match(email)
 
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -68,24 +98,6 @@ class MainPage(BlogHandler):
   def get(self):
       self.write('Hello, Udacity!')
 
-
-##### user stuff
-def make_salt(length = 5):
-    return ''.join(random.choice(letters) for x in xrange(length))
-
-def make_pw_hash(name, pw, salt = None):
-    if not salt:
-        salt = make_salt()
-    h = hashlib.sha256(name + pw + salt).hexdigest()
-    return '%s,%s' % (salt, h)
-
-def valid_pw(name, password, h):
-    salt = h.split(',')[0]
-    return h == make_pw_hash(name, password, salt)
-
-def users_key(group = 'default'):
-    return db.Key.from_path('users', group)
-
 class User(db.Model):
     name = db.StringProperty(required = True)
     pw_hash = db.StringProperty(required = True)
@@ -114,9 +126,7 @@ class User(db.Model):
         if u and valid_pw(name, pw, u.pw_hash):
             return u
 
-
 ##### blog stuff
-
 def blog_key(name = 'default'):
     return db.Key.from_path('blogs', name)
 
@@ -125,17 +135,44 @@ class Post(db.Model):
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
+    user = db.IntegerProperty ()
+    blogger_name = db.StringProperty()
+    liked_by = db.ListProperty(str)
+    unliked_by = db.ListProperty(str)
+    #liked_unliked_by = db.ListProperty(str)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
         return render_str("post.html", p = self)
 
-class BlogFront(BlogHandler):
+class LikePost(db.Model):
+        postid = db.IntegerProperty(required=True)
+        post = db.ReferenceProperty(Post, collection_name='Likes')
+
+class UnlikePost(db.Model):
+        postid = db.IntegerProperty(required=True)
+        post = db.ReferenceProperty(Post, collection_name='Unlikes')
+
+
+class MyBlogs(BlogHandler):
     def get(self):
-        posts = greetings = Post.all().order('-created')
+        user_id = self.user.key().id()
+        posts = Post.all().filter('user =',  user_id).order("-created")
+
         self.render('front.html', posts = posts)
 
-class PostPage(BlogHandler):
+class MainPost(BlogHandler):
+    def users_key(group = 'default'):
+        return db.Key.from_path('users', group)
+
+    def get(self):
+        if not self.user:
+            self.redirect("/login")
+        else:
+            post_db = Post.all().order("-created")
+            self.render("front.html", posts = post_db)
+
+class SinglePostPage(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
@@ -159,41 +196,17 @@ class NewPost(BlogHandler):
 
         subject = self.request.get('subject')
         content = self.request.get('content')
+        get_user_id = self.user.key().id()
+        blogger_username = self.user.name
 
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content)
+            p = Post(parent = blog_key(), subject = subject, content = content, user = get_user_id, blogger_name = blogger_username)
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
+            #self.redirect('/myblog')
         else:
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
-
-
-###### Unit 2 HW's
-class Rot13(BlogHandler):
-    def get(self):
-        self.render('rot13-form.html')
-
-    def post(self):
-        rot13 = ''
-        text = self.request.get('text')
-        if text:
-            rot13 = text.encode('rot13')
-
-        self.render('rot13-form.html', text = rot13)
-
-
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-def valid_username(username):
-    return username and USER_RE.match(username)
-
-PASS_RE = re.compile(r"^.{3,20}$")
-def valid_password(password):
-    return password and PASS_RE.match(password)
-
-EMAIL_RE  = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
-def valid_email(email):
-    return not email or EMAIL_RE.match(email)
 
 class Signup(BlogHandler):
     def get(self):
@@ -248,6 +261,7 @@ class Register(Signup):
             u.put()
 
             self.login(u)
+            time.sleep(.5)
             self.redirect('/blog')
 
 class Login(BlogHandler):
@@ -261,6 +275,7 @@ class Login(BlogHandler):
         u = User.login(username, password)
         if u:
             self.login(u)
+            time.sleep(.5)
             self.redirect('/blog')
         else:
             msg = 'Invalid login'
@@ -269,33 +284,98 @@ class Login(BlogHandler):
 class Logout(BlogHandler):
     def get(self):
         self.logout()
-        self.redirect('/blog')
+        self.redirect('/login')
 
-class Unit3Welcome(BlogHandler):
-    def get(self):
-        if self.user:
-            self.render('welcome.html', username = self.user.name)
+class DeletePost(BlogHandler):
+    def post(self,post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        referer = self.request.referer
+        if (post.blogger_name == self.user.name):
+            db.delete(key)
+            time.sleep(.5)
+            self.redirect(referer)
         else:
-            self.redirect('/signup')
+            error_msg = "Sorry, you can only delete your own posts."
+            self.render('error.html', error = error_msg, referer = referer)
 
-class Welcome(BlogHandler):
-    def get(self):
-        username = self.request.get('username')
-        if valid_username(username):
-            self.render('welcome.html', username = username)
-        else:
-            self.redirect('/unit2/signup')
+class Like(BlogHandler):
+        def get(self, post_id):
+            if not self.user:
+                    self.redirect('/login')
+            else:
+                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                post = db.get(key)
+                referer = self.request.referer
+                blogger = post.blogger_name
+                currentUser = self.user.name
+                error_msg = "Sorry, you cannot Like your own posts."
+                if(blogger == currentUser):
+                    self.render('error.html', error = error_msg, referer = referer)
+                elif (currentUser in post.liked_by):
+                    error_msgg = "You have already Likes this post"
+                    self.render("error.html", error = error_msgg, referer = referer)
+                elif (currentUser in (post.liked_by or post.unliked_by)):
+                    error_msggg = "You can't both like and unlike a post"
+                    self.render("error.html", error = error_msggg, referer = referer)
+                else:
+                    post.liked_by.append(currentUser)
+                    #post.liked_unliked_by.append(currentUser)
+                    post.put()
+                    like = LikePost(postid=int(post_id), post=post.key(),
+                                 parent=blog_key())
+                    like.put()
+                    time.sleep(.5)
+                    self.redirect(referer)
 
-app = webapp2.WSGIApplication([('/', MainPage),
-                               ('/unit2/rot13', Rot13),
+class Unlike(BlogHandler):
+        def get(self, post_id):
+            if not self.user:
+                    self.redirect('/login')
+            else:
+                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                post = db.get(key)
+                referer = self.request.referer
+                blogger = post.blogger_name
+                currentUser = self.user.name
+                error_msg = "Sorry, you cannot Unlike your own posts."
+                if(blogger == currentUser):
+                    self.render('error.html', error = error_msg, referer = referer)
+                elif (currentUser in post.unliked_by):
+                    error_msgg = "You have already Unlikes this post"
+                    self.render("error.html", error = error_msgg, referer = referer)
+                elif (currentUser in (post.liked_by or post.unliked_by)):
+                    error_msggg = "You can't both like and unlike a post"
+                    self.render("error.html", error = error_msggg, referer = referer)
+                else:
+                    post.unliked_by.append(currentUser)
+                    #post.liked_unliked_by.append(currentUser)
+                    post.put()
+                    unlike = UnlikePost(postid=int(post_id), post=post.key(),
+                                 parent=blog_key())
+                    unlike.put()
+                    time.sleep(.5)
+                    self.redirect(referer)
+# class Welcome(BlogHandler):
+#     def get(self):
+#         username = self.request.get('username')
+#         if valid_username(username):
+#             self.render('welcome.html', username = username)
+#         else:
+#             self.redirect('/unit2/signup')
+
+
+app = webapp2.WSGIApplication([('/', MainPost),
                                ('/unit2/signup', Unit2Signup),
-                               ('/unit2/welcome', Welcome),
-                               ('/blog/?', BlogFront),
-                               ('/blog/([0-9]+)', PostPage),
+                               ('/blog/?', MainPost),
+                               ('/myblog', MyBlogs),
+                               ('/blog/([0-9]+)', SinglePostPage),
                                ('/blog/newpost', NewPost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
-                               ('/unit3/welcome', Unit3Welcome),
+                               ('/delete/([0-9]+)', DeletePost),
+                               ('/likes/([0-9]+)', Like),
+                               ('/unlikes/([0-9]+)', Unlike),
                                ],
                               debug=True)
