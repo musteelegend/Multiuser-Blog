@@ -139,7 +139,6 @@ class Post(db.Model):
     blogger_name = db.StringProperty()
     liked_by = db.ListProperty(str)
     unliked_by = db.ListProperty(str)
-    #liked_unliked_by = db.ListProperty(str)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
@@ -153,6 +152,11 @@ class UnlikePost(db.Model):
         postid = db.IntegerProperty(required=True)
         post = db.ReferenceProperty(Post, collection_name='Unlikes')
 
+class Comment(db.Model):
+        comment = db.StringProperty(required=True)
+        cAuthor = db.StringProperty(required=True)
+        created = db.DateTimeProperty(auto_now_add=True)
+        post = db.ReferenceProperty(Post, collection_name='comments')
 
 class MyBlogs(BlogHandler):
     def get(self):
@@ -356,6 +360,151 @@ class Unlike(BlogHandler):
                     unlike.put()
                     time.sleep(.5)
                     self.redirect(referer)
+
+class NewComment(BlogHandler):
+    def get(self, post_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                self.error(404)
+                return
+            else:
+                subject = post.subject
+                content = post.content
+                self.render("newcomment.html", subject=subject, content=content)
+
+    def post(self, post_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+            if not post:
+                self.error(404)
+                return
+            else:
+                comment = self.request.get('comment')
+                if comment:
+                    U = User.by_name(self.user.name)
+                    c = Comment(comment=comment, cAuthor=U.name, post=key, parent=blog_key())
+                    c.put()
+                    self.redirect('/blog/%s' % str(post_id))
+                else:
+                    error = "please enter a comment"
+                    self.render("newcomment.html", comment=comment, error=error)
+
+class EditPost(BlogHandler):
+    def get(self, post_id):
+            if not self.user:
+                return self.redirect('/login')
+            else:
+                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                post = db.get(key)
+                if not post:
+                    self.error(404)
+                    return
+                if (post.blogger_name == self.user.name):
+                    error = ""
+                    self.render("editpost.html", subject=post.subject,
+                                content=post.content, error=error)
+                else:
+                    error_msg = "You can't edit a post you did not create"
+                    self.render("error.html", error = error_msg)
+
+    def post(self, post_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+            if subject and content:
+                key = db.Key.from_path('Post', int(post_id),
+                                       parent=blog_key())
+                edit_post = db.get(key)
+                if not edit_post:
+                    self.error(404)
+                    return
+                if (edit_post.blogger_name == self.user.name):
+                    edit_post.subject = subject
+                    edit_post.content = content
+                    edit_post.put()
+                    self.redirect('/blog/%s' % str(edit_post.key().id()))
+                else:
+                    error_msgg = "You can't edit a post you did not create"
+                    self.render("error.html", error = error_msgg)
+            else:
+                    error = "subject and content, please!"
+                    self.render("newpost.html", subject=subject, content=content, error=error)
+
+class EditComment(BlogHandler):
+    def get(self, post_id, comment_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            post = Post.get_by_id(int(post_id), parent=blog_key())
+            if not post:
+                self.error(404)
+                return
+            comment = Comment.get_by_id(int(comment_id), parent=blog_key())
+            if not comment:
+                self.error(404)
+                return
+            if (comment.cAuthor == self.user.name):
+                error = ""
+                self.render("editcomment.html", subject=post.subject,
+                            content=post.content, error=error,
+                            comment=comment.comment, p=post)
+            else:
+                error_msgg = "You can't edit a comment you did not create"
+                self.render("error.html", error = error_msgg)
+
+    def post(self, post_id, comment_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            edit_comment = self.request.get('comment')
+            if edit_comment:
+                post = Post.get_by_id(int(post_id), parent=blog_key())
+                if not post:
+                    self.error(404)
+                    return
+                comment = Comment.get_by_id(int(comment_id), parent=blog_key())
+                if not comment:
+                    self.error(404)
+                    return
+                if (comment.cAuthor == self.user.name):
+                    comment.comment = edit_comment
+                    comment.put()
+                    self.redirect('/blog/%s' % str(post_id))
+                else:
+                    error_msg = "You can't edit a comment you did not create"
+                    self.render("error.html", error = error_msg)
+            else:
+                post = Post.get_by_id(int(post_id), parent=blog_key())
+                error = "please enter the comment!"
+                self.render("editcomment.html", subject=post.subject,
+                            content=post.content, error=error, p=post)
+
+class DeleteComment(BlogHandler):
+    def get(self, post_id, comment_id):
+        if not self.user:
+            return self.redirect('/login')
+        else:
+            post = Post.get_by_id(int(post_id), parent=blog_key())
+            comment = Comment.get_by_id(int(comment_id), parent=blog_key())
+            if not comment:
+                self.error(404)
+                return
+            elif (comment.cAuthor == self.user.name):
+                    comment.delete()
+                    self.redirect('/blog/%s' % str(post_id))
+            else:
+                error_msg = "You can't delete a comment you did not create"
+                self.render("error.html", error = error_msg)
+
 # class Welcome(BlogHandler):
 #     def get(self):
 #         username = self.request.get('username')
@@ -377,5 +526,9 @@ app = webapp2.WSGIApplication([('/', MainPost),
                                ('/delete/([0-9]+)', DeletePost),
                                ('/likes/([0-9]+)', Like),
                                ('/unlikes/([0-9]+)', Unlike),
+                               ('/comment/([0-9]+)', NewComment),
+                               ('/editpost/([0-9]+)', EditPost),
+                               ('/blog/([0-9]+)/editcomment/([0-9]+)', EditComment),
+                               ('/blog/([0-9]+)/deletecomment/([0-9]+)', DeleteComment),
                                ],
                               debug=True)

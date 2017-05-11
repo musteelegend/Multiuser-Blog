@@ -15,30 +15,44 @@
     {{p._render_text | safe}}
   </div>
   <div class="likes row center-block">
-    <span class="dis">
-      <a href="/likes/{{p.key().id()}}" class="fontawesome-thumbs-up like"></a>
-    </span>
-    <span >
-      <p>{{p.Likes.count()}}</p>
-    </span>
-    <span>
-      <a href="/unlikes/{{p.key().id()}}" class="fontawesome-thumbs-down"></a>
-    </span>
-    <span>
-      <p>{{p.Unlikes.count()}}</p>
-    </span>
-    <span>
-      <a href="#" class="fontawesome-comment"></a>
-    </span>
-    <span>
+    <div class="left col-sm-6">
+      <span>
+        <a href="/likes/{{p.key().id()}}" class="fontawesome-thumbs-up"></a>
+      </span>
+      <span class="like">
+        <p>{{p.Likes.count()}}</p>
+      </span>
+      <span>
+        <a href="/unlikes/{{p.key().id()}}" class="fontawesome-thumbs-down"></a>
+      </span>
+      <span class="unlike">
+        <p>{{p.Unlikes.count()}}</p>
+      </span>
+      <span>
+        <a href="/blog/{{p.key().id()}}" class="fontawesome-comment"></a>
+      <span class="comment">
+        <p>{{p.comments.count()}}</p>
+      </span>
+    </div>
+    <div class="right col-sm-6">
+      <span class="right-stuff">
+        <a href="/comment/{{p.key().id()}}"> Add Comments</a>
+      </span>
+      <span class="right-stuff">
+        <a href="/editpost/{{p.key().id()}}"> Edit Post</a>
+     </span>
+     {% block span %}
+      <span class="right-stuff">
       <form method="post" action="/delete/{{p.key().id()}}">
         <input class="btn btn-info btn-sm" type="submit" value="Delete">
       </form>
     </span>
+     {% endblock%}
+    </div>
   </div>
-  <div class="error">
-    {{ error }}
-  </div>
+
+
 </div>
+
 
 

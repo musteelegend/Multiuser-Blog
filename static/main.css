@@ -125,12 +125,22 @@ input[value="submit blog"] {
     float: left;
     display: inline;
 }
-.like {
-
+.like, .unlike, .comment {
+    margin-right: 30px;
 }
 .likes {
     font-size: 26px;
 }
 span {
     display: inline-block;
+}
+.right {
+    text-align: right;
+    font-size: 20px;
+}
+.right-stuff {
+    margin-left: 30px;
+}
+.new {
+    margin-left: 100px;
 }

@@ -1,5 +1,26 @@
 {% extends "base.html" %}
 
 {% block content %}
+
   {{post.render() | safe}}
+
+  {% for p in post.comments %}
+    <br>
+    <br>
+
+     <div class="cmt-post">{{p.comment}}</div>
+     <div class = "post-by">
+        <span class = "author"> by</span>
+        {{p.cAuthor}}
+     </div>
+
+       <div align = "right">
+        <span class = "editCmt"> <a href = '/blog/{{post.key().id()}}/editcomment/{{p.key().id()}}'>Edit Comment</a></span>
+        <span class = "delCmt"><a href = '/blog/{{post.key().id()}}/deletecomment/{{p.key().id()}}'>Delete Comment</a></span>
+       </div>
+
+     <br>
+     <br>
+  {% endfor %}
+
 {% endblock %}
