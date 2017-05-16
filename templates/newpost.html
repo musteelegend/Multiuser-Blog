@@ -4,18 +4,22 @@
   <h2>new post</h2>
 
     <form method="post">
-      <label>
-        <div>subject</div>
-        <input type="text" name="subject" value="{{subject}}">
-      </label>
+      <div class="col-sm-12 center-block">
+        <label>
+          <div>subject</div>
+          <input type="text" name="subject" value="{{subject}}">
+        </label>
+      </div>
+      <div class="col-sm-12 center-block">
+        <label>
+          <div>blog</div>
+          <textarea name="content">{{content}}</textarea>
+        </label>
+      </div>
 
-      <label>
-        <div>blog</div>
-        <textarea name="content">{{content}}</textarea>
-      </label>
-
-      <div class="error">{{error}}</div>
-
-      <input type="submit" value="submit blog">
+      <div class="error row">{{error}}</div>
+      <div class="row center-block">
+        <input type="submit" value="submit blog">
+      </div>
     </form>
 {% endblock %}

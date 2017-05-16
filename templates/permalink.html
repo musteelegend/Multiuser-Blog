@@ -7,20 +7,20 @@
   {% for p in post.comments %}
     <br>
     <br>
+    <div class = "row">
+        <div class="col-sm-6"> By
+            {{p.cAuthor}} at {{p.created_.strftime("%b %d, %Y")}}
+        </div>
+        <div class="col-sm-9 comment-content">{{p.comment}}</div>
+    </div>
 
-     <div class="cmt-post">{{p.comment}}</div>
-     <div class = "post-by">
-        <span class = "author"> by</span>
-        {{p.cAuthor}}
-     </div>
 
-       <div align = "right">
-        <span class = "editCmt"> <a href = '/blog/{{post.key().id()}}/editcomment/{{p.key().id()}}'>Edit Comment</a></span>
-        <span class = "delCmt"><a href = '/blog/{{post.key().id()}}/deletecomment/{{p.key().id()}}'>Delete Comment</a></span>
-       </div>
-
-     <br>
-     <br>
+    <div align = "right">
+        <span class = "editcmt"> <a href = '/blog/{{post.key().id()}}/editcomment/{{p.key().id()}}'>Edit</a></span>
+        <span class = "delcmt"><a href = '/blog/{{post.key().id()}}/deletecomment/{{p.key().id()}}'>Delete</a></span>
+   </div>
+    <br>
+    <br>
   {% endfor %}
 
 {% endblock %}

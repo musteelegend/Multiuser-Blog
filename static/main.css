@@ -1,4 +1,4 @@
-body {
+/*body {
     position: relative;
     font-family: Helvetica, Arial, sans-serif;
     font-size: 14px;
@@ -7,8 +7,9 @@ body {
     margin: 0 auto;
     padding: 10px;
     color: #333;
-}
-
+}*/
+body {
+background-image: -webkit-linear-gradient(top, #FFFFFF 0%, #66F5FF 100%);}
 .login-area {
     font-size: 13px;
     color: gray;
@@ -58,7 +59,7 @@ input[type=text] {
 
 textarea {
   width: 500px;
-  height: 400px;
+  height: 300px;
   font-size: 17px;
   font-family: monospace;
 }
@@ -107,6 +108,14 @@ input[value="submit blog"] {
     border-left: 6px solid red;
     background-color: lightgrey;
     border-radius: 3px;
+    font-size: 18px;
+}
+.comment-content {
+    margin-top: 5px;
+    border-left: 6px solid green;
+    background-color: lightgrey;
+    border-radius: 3px;
+    font-size: 18px;
 }
 
 [class*="fontawesome-"]:before {
@@ -141,6 +150,20 @@ span {
 .right-stuff {
     margin-left: 30px;
 }
-.new {
-    margin-left: 100px;
+.text-weight {
+    font-weight: bolder;
+    margin-top: 20px;
+}
+.error {
+    color: red;
+    font-weight: bolder;
+}
+.editcmt {
+    font-weight: bolder;
+    margin-right: 10px;
+    font-size: 18px;
+}
+.delcmt {
+    font-weight: bolder;
+    font-size: 18px;
 }

@@ -1,25 +1,30 @@
 {% extends "base.html" %}
 
 {% block content %}
-<br>
-<h2> New Comment </h2>
-    <form method ="post">
-        <label>
-        <div>
-        {{subject}}
-        </div>
-      </label>
-
-      <label>
-      <div>
-      <p> {{content}}<p>
+<div class="container">
+  <br>
+  <form method ="post">
+    <label>
+      <div class="post-title">
+        Subject: {{subject}}
       </div>
-      </label>
-     <br>
-     <label>
-       <textarea name = "comment">{{comment}}</textarea>
-     </label>
-     <div class = "error"> {{error}}</div>
-     <input type = "submit">
-     </form>
+    </label>
+    <label>
+      <div class="post-content">
+        <p> {{content}}<p>
+      </div>
+    </label>
+    <br>
+    <h3> New Comment </h3>
+    <label>
+      <textarea class="center-block" name = "comment">{{comment}}</textarea>
+    </label>
+    <div class = "error">
+      {{error}}
+    </div>
+    <input type = "submit" value="Submit Comment">
+    <br>
+    <br>
+  </form>
+</div>
 {% endblock %}
