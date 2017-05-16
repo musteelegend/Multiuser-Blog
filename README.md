@@ -24,4 +24,4 @@ To deploy this app in google app engine load this program in google app engine a
 ## How to view this application ##
 To view this page visit the below URL
 
-multiuserblog-157410.appspot.com/blog
+https://blog-udacity-163110.appspot.com
