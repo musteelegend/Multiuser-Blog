@@ -1,18 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2>new post</h2>
+  <div class="col-sm-12 center-block">
+    <h2>new post</h2>
 
     <form method="post">
       <div class="col-sm-12 center-block">
         <label>
-          <div>subject</div>
+          <div class="subject center-block">subject</div>
           <input type="text" name="subject" value="{{subject}}">
         </label>
       </div>
       <div class="col-sm-12 center-block">
         <label>
-          <div>blog</div>
+          <div class="blog">blog</div>
           <textarea name="content">{{content}}</textarea>
         </label>
       </div>
@@ -22,4 +23,5 @@
         <input type="submit" value="submit blog">
       </div>
     </form>
+  </div>
 {% endblock %}

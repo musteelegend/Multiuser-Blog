@@ -373,7 +373,7 @@ class DeletePost(BlogHandler):
         else:
             referer = self.request.referer
             if (post.blogger_name == self.user.name):
-                db.delete(key)
+                post.delete()
                 time.sleep(.5)
                 self.redirect(referer)
             else:
@@ -385,7 +385,7 @@ class DeletePost(BlogHandler):
 class Like(BlogHandler):
         def get(self, post_id):
             if not self.user:
-                    self.redirect('/login')
+                self.redirect('/login')
             else:
                 key = db.Key.from_path('Post', int(post_id), parent=blog_key())
                 post = db.get(key)
@@ -508,7 +508,7 @@ class EditPost(BlogHandler):
     def post(self, post_id):
         refererr = self.request.referer
         if not self.user:
-            return self.redirect('/login')
+            self.redirect('/login')
         else:
             subject = self.request.get('subject')
             content = self.request.get('content')
@@ -536,48 +536,33 @@ class EditPost(BlogHandler):
 
 # Editing a comment
 class EditComment(BlogHandler):
-    def get(self, post_id, comment_id):
-        referer = self.request.referer
+    @comment_post_exists
+    def get(self, post_id, comment_id, comment, post):
         if not self.user:
             return self.redirect('/login')
         else:
-            post = Post.get_by_id(int(post_id), parent=blog_key())
-            if not post:
-                self.error(404)
-                return
-            comment = Comment.get_by_id(int(comment_id), parent=blog_key())
-            if not comment:
-                self.error(404)
-                return
             if (comment.cAuthor == self.user.name):
                 error = ""
                 self.render("editcomment.html", subject=post.subject,
                             content=post.content, error=error,
                             comment=comment.comment, p=post)
             else:
+                referer = self.request.referer
                 error_msgg = "You can't edit a comment you did not create."
                 self.render("error.html", error=error_msgg, referer=referer)
 
-    def post(self, post_id, comment_id):
-        refererr = self.request.referer
+    def post(self, post_id, comment_id, Comment, post):
         if not self.user:
             return self.redirect('/login')
         else:
             edit_comment = self.request.get('comment')
             if edit_comment:
-                post = Post.get_by_id(int(post_id), parent=blog_key())
-                if not post:
-                    self.error(404)
-                    return
-                comment = Comment.get_by_id(int(comment_id), parent=blog_key())
-                if not comment:
-                    self.error(404)
-                    return
                 if (comment.cAuthor == self.user.name):
                     comment.comment = edit_comment
                     comment.put()
                     self.redirect('/blog/%s' % str(post_id))
                 else:
+                    refererr = self.request.referer
                     error_msg = "You can't edit a comment you did not create."
                     self.render("error.html", error=error_msg,
                                 referer=refererr)
