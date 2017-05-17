@@ -41,20 +41,35 @@ h2 {
     color: red;
 }
 
-label {
+/*label {
   display: block;
   font-size: 20px;
-}
+}*/
 
-label + label {
+tr {
     margin-top: 20px;
 }
 
 input[type=text] {
     width: 500px;
-    font-size: 20px;
+    font-size: 18px;
     padding: 2px;
+    margin: 2px;
     font-family: monospace;
+}
+
+input[type=password] {
+    width: 400px;
+    font-size: 18px;
+    padding: 2px;
+    margin: 2px;
+    font-family: monospace;
+}
+.down {
+    margin: 2px;
+    padding-top: 2px;
+    font-weight: bold;
+    color: blue;
 }
 
 textarea {
@@ -166,4 +181,9 @@ span {
 .delcmt {
     font-weight: bolder;
     font-size: 18px;
+}
+td.label {
+    font-size: 16px;
+    color: blue;
+    text-align: ;
 }

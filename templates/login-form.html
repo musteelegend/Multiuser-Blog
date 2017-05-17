@@ -1,23 +1,10 @@
-<!DOCTYPE html>
-
-<html>
-  <head>
-    <title>Login</title>
-    {# <link rel="stylesheet" type="text/css" href="/static/main.css"> #}
-    <style type="text/css">
-      .label {text-align: right}
-      .error {color: red}
-      .new {margin: 0 auto}
-    </style>
-
-  </head>
-
-  <body class="new">
+{% extends "base.html" %}
+  {% block content %}
     <h2>Login</h2>
     <form method="post">
       <table>
         <tr>
-          <td class="label">
+          <td class="down">
             Username
           </td>
           <td>
@@ -26,7 +13,7 @@
         </tr>
 
         <tr>
-          <td class="label">
+          <td class="down">
             Password
           </td>
           <td>
@@ -42,6 +29,4 @@
       <input type="submit">
     </form>
     <p>Don't have an account, click <a href="/signup">HERE</a> to register.</p>
-  </body>
-
-</html>
+  {% endblock %}

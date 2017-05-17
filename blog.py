@@ -4,6 +4,7 @@ import random
 import hashlib
 import hmac
 import time
+from functools import wraps
 from string import letters
 
 import webapp2
@@ -16,6 +17,34 @@ jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True)
 
 secret = 'mustlegend'
+
+
+def post_exists(function):
+    @wraps(function)
+    def wrapper(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if not post:
+            self.error(404)
+            return
+        else:
+            return function(self, post_id, post)
+    return wrapper
+
+
+def comment_post_exists(function):
+    @wraps(function)
+    def wrapper(self, post_id, comment_id):
+        key1 = db.Key.from_path('Comment', int(comment_id), parent=blog_key())
+        key2 = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        comment = db.get(key1)
+        post = db.get(key2)
+        if comment and post:
+            return function(self, post_id, comment_id, comment, post)
+        else:
+            self.error(404)
+            return
+    return wrapper
 
 
 def render_str(template, **params):
@@ -186,12 +215,15 @@ class Comment(db.Model):
         post = db.ReferenceProperty(Post, collection_name='comments')
 
 
-# Polulating Myblog page
+# Polulatng Myblog page
 class MyBlogs(BlogHandler):
     def get(self):
-        user_id = self.user.key().id()
-        posts = Post.all().filter('user =',  user_id).order("-created")
-        self.render('front.html', posts=posts)
+        if not self.user:
+            self.redirect("/login")
+        else:
+            user_id = self.user.key().id()
+            posts = Post.all().filter('user =',  user_id).order("-created")
+            self.render('front.html', posts=posts)
 
 
 # Polulating the main blog page
@@ -220,29 +252,29 @@ class SinglePostPage(BlogHandler):
 # Page to create a new post
 class NewPost(BlogHandler):
     def get(self):
-        if self.user:
-            self.render("newpost.html")
-        else:
+        if not self.user:
             self.redirect("/login")
+        else:
+            self.render("newpost.html")
 
     def post(self):
         if not self.user:
-            self.redirect('/blog')
-
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-        get_user_id = self.user.key().id()
-        blogger_username = self.user.name
-
-        if subject and content:
-            p = Post(parent=blog_key(), subject=subject, content=content,
-                     user=get_user_id, blogger_name=blogger_username)
-            p.put()
-            self.redirect('/blog/%s' % str(p.key().id()))
+            self.redirect('/login')
         else:
-            error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content,
-                        error=error)
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+            get_user_id = self.user.key().id()
+            blogger_username = self.user.name
+
+            if subject and content:
+                p = Post(parent=blog_key(), subject=subject, content=content,
+                         user=get_user_id, blogger_name=blogger_username)
+                p.put()
+                self.redirect('/blog/%s' % str(p.key().id()))
+            else:
+                error = "subject and content, please!"
+                self.render("newpost.html", subject=subject, content=content,
+                            error=error)
 
 
 # Signup page where user information is collected
@@ -332,13 +364,16 @@ class Logout(BlogHandler):
 
 
 # Deleting a post
+
 class DeletePost(BlogHandler):
-    def post(self, post_id):
+    @post_exists
+    def post(self, post_id, post):
         if not self.user:
             self.redirect('/login')
         else:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
+            # key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            # post = db.get(key)
+            # print(post)
             referer = self.request.referer
             if (post.blogger_name == self.user.name):
                 db.delete(key)
@@ -558,20 +593,16 @@ class EditComment(BlogHandler):
 
 # Deleting a comment
 class DeleteComment(BlogHandler):
-    def get(self, post_id, comment_id):
+    @comment_post_exists
+    def get(self, post_id, comment_id, comment, post):
         if not self.user:
             return self.redirect('/login')
         else:
-            referer = self.request.referer
-            post = Post.get_by_id(int(post_id), parent=blog_key())
-            comment = Comment.get_by_id(int(comment_id), parent=blog_key())
-            if not comment:
-                self.error(404)
-                return
-            elif (comment.cAuthor == self.user.name):
+            if (comment.cAuthor == self.user.name):
                     comment.delete()
                     self.redirect('/blog/%s' % str(post_id))
             else:
+                referer = self.request.referer
                 error_msg = "You can't delete a comment you did not create."
                 self.render("error.html", error=error_msg, referer=referer)
 
